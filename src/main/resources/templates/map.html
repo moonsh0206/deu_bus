@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>map1</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        /* 상단 영역: 메뉴 + 지도 */
+        .main-container {
+            display: flex;
+            flex: 1; /* 남은 공간 채우기 */
+        }
+
+        /* 왼쪽 메뉴바 스타일 */
+        .sidebar {
+            width: 300px;
+            background-color: #f5f5f5;
+            border-right: 1px solid #ddd;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px; /* 메뉴 간격 */
+        }
+
+        /* 공통 섹션 스타일 */
+        .section {
+            padding: 20px;
+            border-bottom: 1px solid #ddd; /* 섹션 구분 라인 */
+        }
+
+        /* 즐겨찾기 섹션은 구분 라인을 제거 */
+        .no-border {
+            border-bottom: none;
+        }
+
+        /* 검색창 스타일 */
+        .search-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .search-container input {
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            outline: none;
+        }
+
+        .search-container button {
+            padding: 10px;
+            background-color: #007bff;
+            color: white;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .search-container button:hover {
+            background-color: #0056b3;
+        }
+
+        /* 길찾기 섹션 스타일 */
+        .input-group {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 5px 10px;
+            background-color: white;
+            margin-bottom: 10px;
+        }
+
+        .input-group input {
+            border: none;
+            outline: none;
+            font-size: 14px;
+            flex: 1;
+            padding: 5px;
+        }
+
+        .input-group button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            color: #888;
+        }
+
+        .input-group button:hover {
+            color: black;
+        }
+
+        /* 지도 영역 스타일 */
+        .map-container {
+            flex: 1;
+            position: relative;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* 하단 지하철 노선 */
+        .subway-line {
+            height: 120px;
+            background-color: #f5f5f5;
+            border-top: 1px solid #ddd;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start; /* 왼쪽 정렬 */
+            overflow-x: auto; /* 스크롤 가능하도록 */
+            white-space: nowrap;
+            width: 100vw; /* 화면 너비에 맞춤 */
+            max-width: 100%; /* 초과하는 부분 방지 */
+            padding: 10px 0;
+        }
+
+
+        /* 개별 역 스타일 */
+        .station {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: 8px; /* 좌우 여백 */
+            text-align: center;
+            flex-shrink: 0; /* 크기 축소 방지 */
+        }
+
+        .station .circle {
+            width: 15px; /* 원의 너비 */
+            height: 15px; /* 원의 높이 */
+            border-radius: 50%; /* 원형으로 변경 */
+            background-color: #007bff; /* 원 색상 */
+            margin-top: 1px; /* 텍스트와의 간격 */
+        }
+
+        .station span {
+            font-size: 12px; /* 텍스트 크기 */
+            color: #333; /* 텍스트 색상 */
+            margin-bottom: 5px; /* 원과의 간격 */
+        }
+
+        /* 날씨 정보 스타일 */
+        .weather-container {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #555;
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+<!-- 상단: 왼쪽 메뉴 + 지도 -->
+<div class="main-container">
+    <!-- 왼쪽 메뉴바 -->
+    <div class="sidebar">
+        <!-- 검색창 -->
+        <div class="section">
+            <div class="search-container">
+                <input type="text" placeholder="검색어를 입력하세요" id="search-input">
+                <button id="search-button">검색</button>
+            </div>
+            <div class="weather-container" id="weather-container">
+                <!-- 날씨 정보가 여기에 표시됩니다 -->
+            </div>
+        </div>
+
+        <!-- 길찾기 섹션 -->
+        <div class="section">
+            <h4>길찾기</h4>
+            <div class="input-group">
+                <input type="text" placeholder="출발지 입력하세요" id="start-point">
+                <button id="swap-button">↕</button>
+            </div>
+            <div class="input-group">
+                <input type="text" placeholder="도착지 입력하세요" id="end-point">
+                <button id="clear-button">×</button>
+            </div>
+        </div>
+
+        <!-- 내 장소 섹션 -->
+        <div class="section">
+            <h4>내 장소</h4>
+            <p>저장된 장소를 표시합니다.</p>
+        </div>
+
+        <!-- 즐겨찾기 섹션 -->
+        <div class="section no-border">
+            <h4>즐겨찾기</h4>
+            <p>즐겨찾기 목록을 추가하세요.</p>
+        </div>
+    </div>
+
+    <!-- 지도 영역 -->
+    <div class="map-container">
+        <div id="map"></div>
+    </div>
+</div>
+
+<!-- 하단 지하철 노선 -->
+<div class="subway-line">
+    <button class="station-btn" data-lat="35.1703" data-lng="129.1760">장산</button>
+    <button class="station-btn" data-lat="35.1668" data-lng="129.1683">중동</button>
+    <button class="station-btn" data-lat="35.1631" data-lng="129.1582">해운대</button>
+    <button class="station-btn" data-lat="35.1620" data-lng="129.1474">동백</button>
+    <button class="station-btn" data-lat="35.1692" data-lng="129.1384">벡스코</button>
+    <button class="station-btn" data-lat="35.1699" data-lng="129.1335">센텀시티</button>
+    <button class="station-btn" data-lat="35.1671" data-lng="129.1219">민락</button>
+    <button class="station-btn" data-lat="35.1622" data-lng="129.1159">수영</button>
+    <button class="station-btn" data-lat="35.1572" data-lng="129.1123">광안</button>
+    <button class="station-btn" data-lat="35.1499" data-lng="129.1109">금련산</button>
+    <button class="station-btn" data-lat="35.1418" data-lng="129.1077">남천</button>
+    <button class="station-btn" data-lat="35.1376" data-lng="129.1005">경성대·부경대</button>
+    <button class="station-btn" data-lat="35.1378" data-lng="129.0925">대연</button>
+    <button class="station-btn" data-lat="35.1330" data-lng="129.0870">못골</button>
+    <button class="station-btn" data-lat="35.1285" data-lng="129.0815">지게골</button>
+    <button class="station-btn" data-lat="35.1238" data-lng="129.0750">문현</button>
+    <button class="station-btn" data-lat="35.1200" data-lng="129.0700">국제금융센터·부산은행</button>
+    <button class="station-btn" data-lat="35.1155" data-lng="129.0650">전포</button>
+    <button class="station-btn" data-lat="35.1100" data-lng="129.0600">서면</button>
+    <button class="station-btn" data-lat="35.1050" data-lng="129.0550">부암</button>
+    <button class="station-btn" data-lat="35.1000" data-lng="129.0500">가야</button>
+    <button class="station-btn" data-lat="35.0950" data-lng="129.0450">동의대</button>
+    <button class="station-btn" data-lat="35.0900" data-lng="129.0400">개금</button>
+    <button class="station-btn" data-lat="35.0850" data-lng="129.0350">냉정</button>
+    <button class="station-btn" data-lat="35.0800" data-lng="129.0300">주례</button>
+    <button class="station-btn" data-lat="35.0750" data-lng="129.0250">감전</button>
+    <button class="station-btn" data-lat="35.0700" data-lng="129.0200">사상</button>
+    <button class="station-btn" data-lat="35.0650" data-lng="129.0150">덕포</button>
+    <button class="station-btn" data-lat="35.0600" data-lng="129.0100">모덕</button>
+    <button class="station-btn" data-lat="35.0550" data-lng="129.0050">모라</button>
+    <button class="station-btn" data-lat="35.0500" data-lng="129.0000">구남</button>
+    <button class="station-btn" data-lat="35.0450" data-lng="128.9950">구명</button>
+    <button class="station-btn" data-lat="35.0400" data-lng="128.9900">덕천</button>
+    <button class="station-btn" data-lat="35.0350" data-lng="128.9850">수정</button>
+    <button class="station-btn" data-lat="35.0300" data-lng="128.9800">화명</button>
+    <button class="station-btn" data-lat="35.0250" data-lng="128.9750">율리</button>
+    <button class="station-btn" data-lat="35.0200" data-lng="128.9700">동원</button>
+    <button class="station-btn" data-lat="35.0150" data-lng="128.9650">금곡</button>
+    <button class="station-btn" data-lat="35.0100" data-lng="128.9600">호포</button>
+    <button class="station-btn" data-lat="35.0050" data-lng="128.9550">증산</button>
+    <button class="station-btn" data-lat="35.0000" data-lng="128.9500">부산대양산캠퍼스</button>
+    <button class="station-btn" data-lat="34.9950" data-lng="128.9450">남양산</button>
+    <button class="station-btn" data-lat="34.9900" data-lng="128.9400">양산</button>
+</div>
+
+
+
+<!-- 네이버 지도 api (client id) -->
+<script src="https://openapi.map.naver.com/openapi/v3/maps.js?ncpClientId=62n7eydj5t"></script>
+
+<script>
+    // 지도 초기화
+    var map = new naver.maps.Map('map', {
+        center: new naver.maps.LatLng(35.1541284, 129.0321936), // 동의대역 좌표
+        zoom: 16
+    });
+
+    var map = new naver.maps.Map('map', {
+        center: new naver.maps.LatLng(35.1541284, 129.0321936), // 동의대역 좌표
+        scaleControl: false,
+        logoControl: false,
+        mapDataControl: false,
+        zoomControl: true,
+        minZoom: 6,
+        zoom: 16 // 초기 확대 수준
+    });
+
+
+    // 마커 생성
+    var marker = new naver.maps.Marker({
+        position: new naver.maps.LatLng(35.139359, 129.052618), // 초기 마커 위치
+        map: map
+    });
+
+    // 검색 버튼 클릭 이벤트
+    document.getElementById('search-button').addEventListener('click', function () {
+        var query = document.getElementById('search-input').value;
+
+        if (query === "가야역") {
+            var location = new naver.maps.LatLng(35.147432, 129.033803); // 가야역 좌표
+            map.setCenter(location); // 지도를 해당 위치로 이동
+            marker.setPosition(location); // 마커를 해당 위치로 이동
+            alert("검색된 위치: 가야역으로 이동합니다.");
+        } else {
+            alert("검색된 결과가 없습니다."); // 검색 실패 처리
+        }
+    });
+
+    // 출발지와 도착지 관련 동작
+    const startInput = document.getElementById("start-point");
+    const endInput = document.getElementById("end-point");
+    const swapButton = document.getElementById("swap-button");
+    const clearButton = document.getElementById("clear-button");
+
+    // 출발지와 도착지 스왑 기능
+    swapButton.addEventListener("click", () => {
+        const temp = startInput.value;
+        startInput.value = endInput.value;
+        endInput.value = temp;
+    });
+
+    // 도착지 입력 초기화 기능
+    clearButton.addEventListener("click", () => {
+        endInput.value = "";
+    });
+
+    // 날씨 정보를 가져오는 함수
+    async function fetchWeather(lat, lon) {
+        const apiKey = "49b66419fd76a674cd02ab0315451331"; // OpenWeatherMap API 키
+        const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`;
+
+        try {
+            const response = await fetch(url);
+            const data = await response.json();
+
+            if (data) {
+                // 날씨 정보를 화면에 표시
+                const weatherContainer = document.getElementById("weather-container");
+                weatherContainer.innerHTML = `
+        <p><strong>${data.name}</strong>의 현재 날씨</p>
+        <p>온도: ${data.main.temp}°C</p>
+        <p>상태: ${data.weather[0].description}</p>
+      `;
+            }
+        } catch (error) {
+            console.error("날씨 정보를 가져오는 중 오류 발생:", error);
+        }
+    }
+
+    // 현재 위치의 날씨 정보 표시
+    function displayWeather() {
+        // 동의대역 좌표 사용
+        const lat = 35.139359; // 위도
+        const lon = 129.052618; // 경도
+
+        fetchWeather(lat, lon);
+    }
+
+    // 페이지 로드 시 날씨 정보를 표시
+    document.addEventListener("DOMContentLoaded", displayWeather);
+
+    // 지도 이동 함수
+    function moveToStation(lat, lng) {
+        var location = new naver.maps.LatLng(lat, lng);
+        map.setCenter(location);
+        marker.setPosition(location);
+    }
+
+    // 버튼 클릭 이벤트 추가
+    document.querySelectorAll(".station-btn").forEach(button => {
+        button.addEventListener("click", function () {
+            const lat = this.getAttribute("data-lat");
+            const lng = this.getAttribute("data-lng");
+            moveToStation(lat, lng);
+        });
+    });
+</script>
+</body>
+</html>
